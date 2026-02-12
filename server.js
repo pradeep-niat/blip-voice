@@ -7,26 +7,25 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-
+// Test Route
 app.get("/", (req, res) => {
-  res.send("Backend is running");
+  res.send("Vapi Backend Running");
 });
 
-
-// 🔥 START CALL
+// Start Call Route
 app.post("/start-call", async (req, res) => {
-  const { phone_number, agent_id } = req.body;
+  const { phone_number } = req.body;
 
   try {
     const response = await axios.post(
-      "https://api.retellai.com/v2/create-call",
+      "https://api.vapi.ai/call",
       {
-        agent_id: agent_id,
-        to_number: phone_number
+        assistantId: process.env.VAPI_ASSISTANT_ID,
+        phoneNumber: phone_number
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.RETELL_API_KEY}`,
+          Authorization: `Bearer ${process.env.VAPI_API_KEY}`,
           "Content-Type": "application/json"
         }
       }
@@ -34,19 +33,14 @@ app.post("/start-call", async (req, res) => {
 
     res.json(response.data);
   } catch (error) {
-    console.error(error.response?.data || error.message);
+    console.log(error.response?.data || error.message);
     res.status(500).json({ error: "Call failed" });
   }
 });
 
-// 🔥 WEBHOOK FROM RETELL
-app.post("/retell-webhook", async (req, res) => {
-  const callData = req.body;
-
-  console.log("Webhook received:", callData);
-
-  // Here we will later save to Supabase
-
+// Webhook Route
+app.post("/vapi-webhook", (req, res) => {
+  console.log("Webhook received:", req.body);
   res.status(200).send("OK");
 });
 
