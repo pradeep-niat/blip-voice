@@ -7,12 +7,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Test route
 app.get("/", (req, res) => {
-  res.send("Vapi Backend Running");
+  res.send("Outbound Call Server Running");
 });
 
-// Start Call route
 app.post("/start-call", async (req, res) => {
   const { phone_number } = req.body;
 
@@ -39,12 +37,6 @@ app.post("/start-call", async (req, res) => {
     console.log("Vapi Error:", error.response?.data || error.message);
     res.status(500).json({ error: "Call failed" });
   }
-});
-
-// Webhook route
-app.post("/vapi-webhook", (req, res) => {
-  console.log("Webhook received:", req.body);
-  res.status(200).send("OK");
 });
 
 app.listen(3000, () => {
