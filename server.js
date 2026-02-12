@@ -7,12 +7,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ Test Route
+// Test route
 app.get("/", (req, res) => {
   res.send("Vapi Backend Running");
 });
 
-// ✅ Start Call Route
+// Start Call route
 app.post("/start-call", async (req, res) => {
   const { phone_number } = req.body;
 
@@ -21,7 +21,7 @@ app.post("/start-call", async (req, res) => {
       "https://api.vapi.ai/call",
       {
         assistantId: process.env.VAPI_ASSISTANT_ID,
-        phoneNumber: {
+        customer: {
           number: phone_number
         }
       },
@@ -40,7 +40,7 @@ app.post("/start-call", async (req, res) => {
   }
 });
 
-// ✅ Webhook Route
+// Webhook route
 app.post("/vapi-webhook", (req, res) => {
   console.log("Webhook received:", req.body);
   res.status(200).send("OK");
