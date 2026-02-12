@@ -21,6 +21,7 @@ app.post("/start-call", async (req, res) => {
       "https://api.vapi.ai/call",
       {
         assistantId: process.env.VAPI_ASSISTANT_ID,
+        phoneNumberId: process.env.VAPI_PHONE_NUMBER_ID,
         customer: {
           number: phone_number
         }
@@ -38,12 +39,6 @@ app.post("/start-call", async (req, res) => {
     console.log("Vapi Error:", error.response?.data || error.message);
     res.status(500).json({ error: "Call failed" });
   }
-});
-
-// Webhook route
-app.post("/vapi-webhook", (req, res) => {
-  console.log("Webhook received:", req.body);
-  res.status(200).send("OK");
 });
 
 app.listen(3000, () => {
