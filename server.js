@@ -5,7 +5,7 @@ const OpenAI = require("openai");
 require("dotenv").config();
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
@@ -14,7 +14,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// In-memory storage
+// In-memory call storage
 let calls = [];
 
 /*
@@ -80,16 +80,18 @@ app.post("/start-call", async (req, res) => {
       }
     );
 
+    // Save initial call record
     calls.push({
       id: response.data.id,
       number: phone_number,
-      status: response.data.status || "queued",
+      status: "queued",
       duration: 0,
       cost: 0,
       recordingUrl: null,
       transcript: null,
       score: 0,
-      createdAt: new Date()
+      createdAt: new Date(),
+      processed: false // important flag
     });
 
     res.json(response.data);
@@ -102,42 +104,48 @@ app.post("/start-call", async (req, res) => {
 
 /*
 ================================================
-VAPI WEBHOOK
+VAPI WEBHOOK (DUPLICATE SAFE)
 ================================================
 */
 app.post("/vapi-webhook", async (req, res) => {
   const event = req.body;
 
-  console.log("Webhook received:", JSON.stringify(event, null, 2));
-
-  if (event?.message?.call?.id) {
+  // Only process FINAL event
+  if (
+    event?.message?.type === "end-of-call-report" &&
+    event?.message?.call?.id
+  ) {
 
     const callId = event.message.call.id;
     const call = calls.find(c => c.id === callId);
 
-    if (call) {
-
-      // When full report comes
-      if (event.message.type === "end-of-call-report") {
-
-        call.status = "completed";
-        call.duration = event.message.durationSeconds || 0;
-        call.cost = event.message.cost || 0;
-        call.recordingUrl = event.message.recordingUrl || null;
-        call.transcript = event.message.transcript || null;
-
-        // AI Score
-        if (call.transcript) {
-          const aiScore = await calculateCallScore(call.transcript);
-          call.score = aiScore;
-        }
-      }
-
-      // Status updates
-      if (event.message.type === "status-update") {
-        call.status = event.message.status || call.status;
-      }
+    if (!call) {
+      console.log("Call not found, ignoring webhook.");
+      return res.sendStatus(200);
     }
+
+    // Prevent duplicate processing
+    if (call.processed === true) {
+      console.log("Duplicate webhook ignored.");
+      return res.sendStatus(200);
+    }
+
+    console.log("Processing final call report:", callId);
+
+    call.status = "completed";
+    call.duration = event.message.durationSeconds || 0;
+    call.cost = event.message.cost || 0;
+    call.recordingUrl = event.message.recordingUrl || null;
+    call.transcript = event.message.transcript || null;
+
+    // AI scoring
+    if (call.transcript) {
+      const aiScore = await calculateCallScore(call.transcript);
+      call.score = aiScore;
+    }
+
+    // Mark as processed
+    call.processed = true;
   }
 
   res.sendStatus(200);
@@ -171,17 +179,11 @@ app.get("/calls", (req, res) => {
 
 /*
 ================================================
-GET SINGLE CALL
+HEALTH CHECK (PREVENT RENDER SLEEP)
 ================================================
 */
-app.get("/call/:id", (req, res) => {
-  const call = calls.find(c => c.id === req.params.id);
-
-  if (!call) {
-    return res.status(404).json({ error: "Call not found" });
-  }
-
-  res.json(call);
+app.get("/", (req, res) => {
+  res.send("Server running");
 });
 
 /*
@@ -192,4 +194,3 @@ START SERVER
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
