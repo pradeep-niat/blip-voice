@@ -7,12 +7,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Test route
 app.get("/", (req, res) => {
-  res.send("Outbound Call Server Running");
+  res.send("Server Running");
 });
 
-// Start outbound call
 app.post("/start-call", async (req, res) => {
   const { phone_number } = req.body;
 
@@ -21,12 +19,9 @@ app.post("/start-call", async (req, res) => {
       "https://api.vapi.ai/call",
       {
         assistantId: process.env.VAPI_ASSISTANT_ID,
-        phoneNumber: {
-          twilioPhoneNumber: process.env.TWILIO_PHONE_NUMBER,   // YOUR Twilio number
-          twilioAccountSid: process.env.TWILIO_ACCOUNT_SID
-        },
+        phoneNumberId: process.env.VAPI_PHONE_NUMBER_ID,
         customer: {
-          number: phone_number   // Customer number you want to call
+          number: phone_number
         }
       },
       {
