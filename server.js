@@ -1,6 +1,7 @@
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
+const OpenAI = require("openai");
 require("dotenv").config();
 
 const app = express();
@@ -9,17 +10,52 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 
-/*
-====================================
-IN-MEMORY CALL STORAGE
-====================================
-*/
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+// In-memory storage
 let calls = [];
 
 /*
-====================================
-START CALL (ONLY PHONE NUMBER)
-====================================
+================================================
+AI CALL SCORING FUNCTION
+================================================
+*/
+async function calculateCallScore(transcript) {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `You are a professional call quality evaluator.
+Score the call from 0 to 100.
+Return ONLY valid JSON like:
+{ "score": number }`
+        },
+        {
+          role: "user",
+          content: transcript
+        }
+      ]
+    });
+
+    const text = response.choices[0].message.content.trim();
+    const parsed = JSON.parse(text);
+
+    return parsed.score || 0;
+
+  } catch (error) {
+    console.error("OpenAI scoring error:", error.message);
+    return 0;
+  }
+}
+
+/*
+================================================
+START CALL
+================================================
 */
 app.post("/start-call", async (req, res) => {
   try {
@@ -34,9 +70,7 @@ app.post("/start-call", async (req, res) => {
       {
         assistantId: process.env.VAPI_ASSISTANT_ID,
         phoneNumberId: process.env.VAPI_PHONE_NUMBER_ID,
-        customer: {
-          number: phone_number
-        }
+        customer: { number: phone_number }
       },
       {
         headers: {
@@ -67,32 +101,41 @@ app.post("/start-call", async (req, res) => {
 });
 
 /*
-====================================
-WEBHOOK (UPDATES CALL DETAILS)
-====================================
+================================================
+VAPI WEBHOOK
+================================================
 */
-app.post("/vapi-webhook", (req, res) => {
+app.post("/vapi-webhook", async (req, res) => {
   const event = req.body;
 
-  console.log("Webhook received:", event);
+  console.log("Webhook received:", JSON.stringify(event, null, 2));
 
-  if (event?.id) {
-    const call = calls.find(c => c.id === event.id);
+  if (event?.message?.call?.id) {
+
+    const callId = event.message.call.id;
+    const call = calls.find(c => c.id === callId);
 
     if (call) {
-      call.status = event.status || call.status;
-      call.duration = event.duration || call.duration;
-      call.cost = event.cost || call.cost;
-      call.recordingUrl = event.recordingUrl || call.recordingUrl;
-      call.transcript = event.transcript || call.transcript;
 
-      // Simple success scoring
-      if (call.status === "completed" && call.duration > 10) {
-        call.score = 100;
-      } else if (call.status === "completed") {
-        call.score = 70;
-      } else {
-        call.score = 0;
+      // When full report comes
+      if (event.message.type === "end-of-call-report") {
+
+        call.status = "completed";
+        call.duration = event.message.durationSeconds || 0;
+        call.cost = event.message.cost || 0;
+        call.recordingUrl = event.message.recordingUrl || null;
+        call.transcript = event.message.transcript || null;
+
+        // AI Score
+        if (call.transcript) {
+          const aiScore = await calculateCallScore(call.transcript);
+          call.score = aiScore;
+        }
+      }
+
+      // Status updates
+      if (event.message.type === "status-update") {
+        call.status = event.message.status || call.status;
       }
     }
   }
@@ -101,9 +144,9 @@ app.post("/vapi-webhook", (req, res) => {
 });
 
 /*
-====================================
-GET ALL CALLS + SUMMARY
-====================================
+================================================
+GET ALL CALLS
+================================================
 */
 app.get("/calls", (req, res) => {
 
@@ -122,19 +165,17 @@ app.get("/calls", (req, res) => {
       failedCalls,
       successRate: successRate + "%"
     },
-    calls: calls
+    calls
   });
 });
 
 /*
-====================================
-GET SINGLE CALL DETAILS
-====================================
+================================================
+GET SINGLE CALL
+================================================
 */
 app.get("/call/:id", (req, res) => {
-  const { id } = req.params;
-
-  const call = calls.find(c => c.id === id);
+  const call = calls.find(c => c.id === req.params.id);
 
   if (!call) {
     return res.status(404).json({ error: "Call not found" });
@@ -144,10 +185,11 @@ app.get("/call/:id", (req, res) => {
 });
 
 /*
-====================================
+================================================
 START SERVER
-====================================
+================================================
 */
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
