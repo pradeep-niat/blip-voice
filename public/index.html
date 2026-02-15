@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blip Voice - AI Voice Automation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script> <!-- For easier API calls -->
+</head>
+<body>
+
+    <!-- AUTHENTICATION PAGE -->
+    <div id="auth-page" class="auth-container">
+        <div class="auth-left">
+            <div class="brand">
+                <h1>NexaFlow</h1>
+                <p>AI Voice Automation for Modern Businesses</p>
+            </div>
+        </div>
+        <div class="auth-right">
+            <div class="auth-box">
+                <h2 id="auth-title">Login to Blip Voice</h2>
+                <form id="auth-form">
+                    <div class="input-group" id="name-group" style="display: none;">
+                        <label for="fullname">Full Name</label>
+                        <input type="text" id="fullname" placeholder="John Doe">
+                    </div>
+                    <div class="input-group" id="business-group" style="display: none;">
+                        <label for="businessname">Business Name</label>
+                        <input type="text" id="businessname" placeholder="Acme Corp">
+                    </div>
+                    <div class="input-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" placeholder="you@example.com" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" placeholder="••••••••" required>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary" id="auth-submit">Login</button>
+                    
+                    <div class="auth-options">
+                        <a href="#" id="toggle-auth">Don't have an account? Sign up</a>
+                        <a href="#" id="forgot-password">Forgot password?</a>
+                    </div>
+
+                    <div class="divider">OR</div>
+                    
+                    <button type="button" class="btn-google">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                        Continue with Google
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP LAYOUT (Hidden by default) -->
+    <div id="app-layout" class="app-container" style="display: none;">
+        
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Blip Voice</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-page="dashboard">
+                    <span class="icon">📊</span> Dashboard
+                </a>
+                <a href="#" class="nav-item" data-page="agents">
+                    <span class="icon">🤖</span> Agents
+                </a>
+                <a href="#" class="nav-item" data-page="customers">
+                    <span class="icon">👥</span> Customers
+                </a>
+                <a href="#" class="nav-item" data-page="campaigns">
+                    <span class="icon">📢</span> Campaigns
+                </a>
+                <a href="#" class="nav-item" data-page="calls">
+                    <span class="icon">📞</span> Calls
+                </a>
+                <a href="#" class="nav-item" data-page="integrations">
+                    <span class="icon">🔌</span> Integrations
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" class="nav-item" data-page="profile">
+                    <span class="icon">👤</span> Profile
+                </a>
+                <a href="#" class="nav-item" data-page="settings">
+                    <span class="icon">⚙️</span> Settings
+                </a>
+                <a href="#" class="nav-item" id="logout-btn">
+                    <span class="icon">🚪</span> Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            
+            <!-- TOP NAVBAR -->
+            <header class="top-navbar">
+                <h2 id="page-title">Dashboard</h2>
+                <div class="user-menu">
+                    <span class="notification-icon">🔔</span>
+                    <div class="user-profile">
+                        <span id="user-name-display">User</span>
+                        <div class="avatar">U</div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- DASHBOARD VIEW -->
+            <section id="view-dashboard" class="content-view active">
+                <div class="welcome-message">
+                    <h1 id="welcome-text">Welcome back, User</h1>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🤖</div>
+                        <div class="stat-info">
+                            <h3>Total Agents</h3>
+                            <p class="stat-value" id="total-agents">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-info">
+                            <h3>Total Customers</h3>
+                            <p class="stat-value" id="total-customers">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📢</div>
+                        <div class="stat-info">
+                            <h3>Total Campaigns</h3>
+                            <p class="stat-value" id="total-campaigns">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📞</div>
+                        <div class="stat-info">
+                            <h3>Total Calls</h3>
+                            <p class="stat-value" id="total-calls-count">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recent-activity">
+                    <h3>Recent Calls</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Agent</th>
+                                    <th>Status</th>
+                                    <th>Success Score</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-calls-body">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- AGENTS VIEW -->
+            <section id="view-agents" class="content-view">
+                <div class="view-header">
+                    <h3>Your AI Agents</h3>
+                    <button class="btn-primary" onclick="showModal('create-agent-modal')">+ Create Agent</button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="agents-table-body">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- CUSTOMERS VIEW -->
+            <section id="view-customers" class="content-view">
+                <div class="view-header">
+                    <h3>Customers</h3>
+                    <button class="btn-primary" onclick="showModal('add-customer-modal')">+ Add Customer</button>
+                </div>
+                <div class="search-bar">
+                    <input type="text" placeholder="Search customers..." id="customer-search">
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Phone</th>
+                                <th>Email</th>
+                                <th>Tags</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customers-table-body">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- CAMPAIGNS VIEW -->
+            <section id="view-campaigns" class="content-view">
+                <div class="view-header">
+                    <h3>Campaigns</h3>
+                    <button class="btn-primary" onclick="showModal('create-campaign-modal')">+ Create Campaign</button>
+                </div>
+                
+                <!-- Quick Call Test Section -->
+                <div class="card" style="margin-bottom: 20px; padding: 20px;">
+                    <h3>Quick Test Call</h3>
+                    <p>Enter a phone number to test the "Start Call" functionality immediately.</p>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <input type="tel" id="quick-test-phone" placeholder="+1234567890" style="padding: 10px; border-radius: 6px; border: 1px solid #ddd; flex: 1;">
+                        <button class="btn-primary" id="start-test-call-btn">Start Test Call</button>
+                    </div>
+                    <div id="call-status-message" style="margin-top: 10px; font-weight: 500;"></div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Agent</th>
+                                <th>Status</th>
+                                <th>Customers</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody id="campaigns-table-body">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- CALLS VIEW -->
+            <section id="view-calls" class="content-view">
+                <div class="view-header">
+                    <h3>Call Logs</h3>
+                    <div class="filters">
+                        <select id="call-status-filter">
+                            <option value="all">All Status</option>
+                            <option value="completed">Completed</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="analytics-summary">
+                    <div class="mini-stat">
+                        <span>Success Rate</span>
+                        <strong id="calls-success-rate">0%</strong>
+                    </div>
+                    <div class="mini-stat">
+                        <span>Total Calls</span>
+                        <strong id="calls-total">0</strong>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Phone</th>
+                                <th>Status</th>
+                                <th>Success / AI Score</th>
+                                <th>Duration</th>
+                                <th>Recording</th>
+                                <th>Transcript</th>
+                            </tr>
+                        </thead>
+                        <tbody id="calls-table-body">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- INTEGRATIONS VIEW -->
+            <section id="view-integrations" class="content-view">
+                <div class="integrations-grid">
+                    <div class="integration-card">
+                        <div class="card-header">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" alt="Google Calendar" width="40">
+                            <h3>Google Calendar</h3>
+                        </div>
+                        <p>Sync appointments directly to your calendar.</p>
+                        <button class="btn-secondary">Connect</button>
+                    </div>
+                    <div class="integration-card">
+                        <div class="card-header">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg" alt="Telegram" width="40">
+                            <h3>Telegram Bot</h3>
+                        </div>
+                        <p>Receive call notifications via Telegram.</p>
+                        <input type="text" placeholder="Bot Token" class="full-width-input">
+                        <button class="btn-primary" style="margin-top: 10px;">Save Token</button>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- PROFILE VIEW -->
+             <section id="view-profile" class="content-view">
+                <h3>My Profile</h3>
+                <!-- Placeholder -->
+            </section>
+            
+            <!-- SETTINGS VIEW -->
+             <section id="view-settings" class="content-view">
+                <h3>Settings</h3>
+                <!-- Placeholder -->
+            </section>
+
+        </main>
+    </div>
+
+    <!-- MODALS -->
+    
+    <!-- Create Agent Modal -->
+    <div id="create-agent-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('create-agent-modal')">&times;</span>
+            <h2>Create New Agent</h2>
+            <form id="create-agent-form">
+                <div class="input-group">
+                    <label>Agent Name</label>
+                    <input type="text" required>
+                </div>
+                <div class="input-group">
+                    <label>Role</label>
+                    <select>
+                        <option>Sales</option>
+                        <option>Support</option>
+                        <option>Appointment Setter</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Voice Type</label>
+                    <select>
+                        <option>Male - Professional</option>
+                        <option>Female - Professional</option>
+                        <option>Male - Casual</option>
+                        <option>Female - Casual</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Instructions</label>
+                    <textarea rows="4" placeholder="You are a helpful assistant..."></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Create Agent</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Customer Modal -->
+    <div id="add-customer-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('add-customer-modal')">&times;</span>
+            <h2>Add Customer</h2>
+            <form id="add-customer-form">
+                <div class="input-group">
+                    <label>Name</label>
+                    <input type="text" required>
+                </div>
+                <div class="input-group">
+                    <label>Phone</label>
+                    <input type="tel" required>
+                </div>
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email">
+                </div>
+                <button type="submit" class="btn-primary">Add Customer</button>
+            </form>
+        </div>
+    </div>
+    
+     <!-- Create Campaign Modal -->
+    <div id="create-campaign-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('create-campaign-modal')">&times;</span>
+            <h2>Create Campaign</h2>
+            <form id="create-campaign-form">
+                <div class="input-group">
+                    <label>Campaign Name</label>
+                    <input type="text" required>
+                </div>
+                <div class="input-group">
+                    <label>Select Agent</label>
+                    <select id="campaign-agent-select">
+                        <option>Loading...</option>
+                    </select>
+                </div>
+                 <div class="input-group">
+                    <label>Type</label>
+                    <select>
+                        <option>Outbound</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">Create Campaign</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Transcript Modal -->
+     <div id="transcript-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('transcript-modal')">&times;</span>
+            <h2>Call Transcript</h2>
+            <div id="transcript-text" style="padding: 10px; background: #f4f6f8; border-radius: 6px; max-height: 300px; overflow-y: auto;">
+                Loading...
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
